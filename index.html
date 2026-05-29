@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>走马灯特效 - 轮播图</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', system-ui, sans-serif;
+        }
+
+        .carousel {
+            position: relative;
+            max-width: 1000px;
+            margin: 40px auto;
+            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+        }
+
+        .carousel-track {
+            display: flex;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .carousel-slide {
+            min-width: 100%;
+            position: relative;
+        }
+
+        .carousel-slide img {
+            width: 100%;
+            height: 500px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.75));
+            padding: 40px 30px 30px;
+            color: white;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.9);
+            color: #1f2937;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        .nav-button:hover {
+            background: white;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .prev {
+            left: 20px;
+        }
+
+        .next {
+            right: 20px;
+        }
+
+        .dots {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.6);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .dot-active {
+            background: white;
+            width: 28px;
+            border-radius: 9999px;
+        }
+
+        .caption {
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 py-12">
+
+    <div class="max-w-5xl mx-auto px-4">
+        <h1 class="text-4xl font-bold text-center mb-2 text-gray-800">走马灯特效</h1>
+        <p class="text-center text-gray-600 mb-10">纯 HTML + CSS + JS 实现，自动播放 + 手动控制</p>
+
+        <!-- 轮播图 -->
+        <div class="carousel" id="carousel">
+            <div class="carousel-track" id="track">
+                
+                <!-- Slide 1 -->
+                <div class="carousel-slide">
+                    <img src="https://picsum.photos/id/1015/1200/600" alt="风景1">
+                    <div class="overlay">
+                        <h2 class="caption">山川壮丽</h2>
+                        <p class="text-lg opacity-90">大自然的鬼斧神工</p>
+                    </div>
+                </div>
+
+                <!-- Slide 2 -->
+                <div class="carousel-slide">
+                    <img src="https://picsum.photos/id/133/1200/600" alt="风景2">
+                    <div class="overlay">
+                        <h2 class="caption">城市夜景</h2>
+                        <p class="text-lg opacity-90">灯火璀璨的不夜城</p>
+                    </div>
+                </div>
+
+                <!-- Slide 3 -->
+                <div class="carousel-slide">
+                    <img src="https://picsum.photos/id/201/1200/600" alt="风景3">
+                    <div class="overlay">
+                        <h2 class="caption">海洋世界</h2>
+                        <p class="text-lg opacity-90">深蓝色的秘密</p>
+                    </div>
+                </div>
+
+                <!-- Slide 4 -->
+                <div class="carousel-slide">
+                    <img src="https://picsum.photos/id/251/1200/600" alt="风景4">
+                    <div class="overlay">
+                        <h2 class="caption">秋日童话</h2>
+                        <p class="text-lg opacity-90">金黄色的浪漫</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 左右箭头 -->
+            <div class="nav-button prev" id="prev">‹</div>
+            <div class="nav-button next" id="next">›</div>
+
+            <!-- 指示点 -->
+            <div class="dots" id="dots"></div>
+        </div>
+
+        <div class="text-center mt-8">
+            <button onclick="toggleAutoPlay()" id="autoplayBtn"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-full font-medium transition">
+                暂停自动播放
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const track = document.getElementById('track');
+        const slides = document.querySelectorAll('.carousel-slide');
+        const prevBtn = document.getElementById('prev');
+        const nextBtn = document.getElementById('next');
+        const dotsContainer = document.getElementById('dots');
+        let currentIndex = 0;
+        let autoPlayInterval;
+        let isPlaying = true;
+
+        // 创建指示点
+        function createDots() {
+            dotsContainer.innerHTML = '';
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.classList.add('dot');
+                if (index === 0) dot.classList.add('dot-active');
+                dot.addEventListener('click', () => {
+                    goToSlide(index);
+                });
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        // 更新指示点
+        function updateDots() {
+            const dots = dotsContainer.querySelectorAll('.dot');
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('dot-active', index === currentIndex);
+            });
+        }
+
+        // 跳转到指定幻灯片
+        function goToSlide(index) {
+            currentIndex = index;
+            track.style.transform = `translateX(-${currentIndex * 100}%)`;
+            updateDots();
+        }
+
+        // 下一张
+        function nextSlide() {
+            currentIndex = (currentIndex + 1) % slides.length;
+            track.style.transform = `translateX(-${currentIndex * 100}%)`;
+            updateDots();
+        }
+
+        // 上一张
+        function prevSlide() {
+            currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+            track.style.transform = `translateX(-${currentIndex * 100}%)`;
+            updateDots();
+        }
+
+        // 自动播放
+        function startAutoPlay() {
+            if (autoPlayInterval) clearInterval(autoPlayInterval);
+            autoPlayInterval = setInterval(nextSlide, 3500);
+        }
+
+        function toggleAutoPlay() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('autoplayBtn');
+            
+            if (isPlaying) {
+                startAutoPlay();
+                btn.textContent = '暂停自动播放';
+                btn.classList.remove('bg-gray-500');
+                btn.classList.add('bg-indigo-600');
+            } else {
+                clearInterval(autoPlayInterval);
+                btn.textContent = '恢复自动播放';
+                btn.classList.remove('bg-indigo-600');
+                btn.classList.add('bg-gray-500');
+            }
+        }
+
+        // 初始化
+        function init() {
+            createDots();
+            
+            prevBtn.addEventListener('click', prevSlide);
+            nextBtn.addEventListener('click', nextSlide);
+
+            // 键盘控制
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') prevSlide();
+                if (e.key === 'ArrowRight') nextSlide();
+            });
+
+            // 触摸滑动支持
+            let startX = 0;
+            const carousel = document.getElementById('carousel');
+            
+            carousel.addEventListener('touchstart', e => {
+                startX = e.touches[0].clientX;
+            });
+
+            carousel.addEventListener('touchend', e => {
+                const endX = e.changedTouches[0].clientX;
+                if (startX - endX > 50) nextSlide();
+                if (endX - startX > 50) prevSlide();
+            });
+
+            // 开始自动播放
+            startAutoPlay();
+        }
+
+        // 页面加载完成执行
+        window.onload = init;
+    </script>
+
+</body>
+</html>
